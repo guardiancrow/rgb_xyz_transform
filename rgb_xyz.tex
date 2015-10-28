@@ -1,0 +1,515 @@
+\documentclass[12pt]{jsarticle}
+
+\usepackage{fourier}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\begin{document}
+
+\begin{center}
+\Huge RGB - XYZ色空間の相互変換
+\end{center}
+
+\begin{center}
+\large ～ 変換マトリックスの意味 ～
+\end{center}
+
+\begin{flushright}
+guardiancrow (@guardiancrow)
+\end{flushright}
+
+\vspace{3\baselineskip}
+
+\section{はじめに}
+
+RGB色空間をXYZ色空間に変換するとき、或いはその逆を行おうとするとき、解説している書籍やWebサイトでは決まって以下のような変換マトリックスを示されます。
+
+\begin{equation}
+\begin{bmatrix}
+X \\
+Y \\
+Z \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+0.4124 & 0.3576 & 0.1805 \\
+0.2126 & 0.7152 & 0.0722 \\
+0.0193 & 0.1192 & 0.9505
+\end{bmatrix}
+\begin{bmatrix}
+R \\
+G \\
+B \\
+\end{bmatrix}
+\label{eq:RGBtoXYZ}
+\end{equation}
+
+\begin{equation}
+\begin{bmatrix}
+R \\
+G \\
+B \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+3.2406 & -1.5372 & -0.4986 \\
+-0.9689 & 1.8758 & 0.0415 \\
+0.0557 & -0.2040 & 1.0570
+\end{bmatrix}
+\begin{bmatrix}
+X \\
+Y \\
+Z \\
+\end{bmatrix}
+\label{eq:XYZtoRGB}
+\end{equation}
+
+この式の通りに計算すれば確かに変換できるわけですが、この式自体はどのように求めるのでしょうか？
+
+\section{定義のまとめ}
+
+RGB-XYZ変換はCIEが1931年に制定したCIE RGB表色系とCIE XYZ表色系における相互変換です。ここでは特にCIE RGBとは言わず、単にRGBと言うことにします。XYZについてもです。
+
+RGB表色系は、最も一般的な表色系でそれぞれRed、Green、Blueの色の強さがどれぐらいあるかで色を示します。全ての値が最小の時に黒色になり、最大の時に白色になります。
+
+\[ 0 \leqq R,G,B \leqq 1 \]
+
+XYZ表色系とは、人間の目で感知することができる三刺激値に由来するものです。RGBでは表現しきれない（RGBでは値が負になるような）色を定義することができます。Xは赤っぽい値を表し、Yは輝度を表し、Zは青っぽい値を表します。（っぽいという表現の意図はそれそのものではないという意味です）
+
+ここで輝度は光源の種類によって性質が変わってしまうことに気がつきます。昼光色をD65、昼白色をD50と呼び、それぞれ色温度を6500Kと5000Kと定義しています。また、最大の輝度の時、すなわち白色の時$Y=1$となるように定義します。
+
+小文字のxyzはCIEが制定したCIE xy色度図に対応する座標で、大文字のXYZとは簡単な変換式により対応しています。
+
+\[
+x = \frac{X}{X + Y + Z}
+\]
+
+\[
+y = \frac{Y}{X + Y + Z}
+\]
+
+\[
+z = \frac{Z}{X + Y + Z}
+\]
+
+\[
+x + y + z = 1
+\]
+
+XYZ表色系は他の表色系を表すときにベースとなるものですが直感的ではありません。これを補うためにこれらの小文字xyzの値を借りてxyY表色系というものが考案されました。以下のような関係があります。
+
+\begin{equation}
+X = \frac{xY}{y} \label{eq:X_xyY}
+\end{equation}
+
+\begin{equation}
+Z = \frac{zY}{y} \label{eq:Z_xyY}
+\end{equation}
+
+\section{下準備}
+
+さて、これらの定義を使って変換マトリックスを求めるための方法を探っていきましょう。
+
+まずRGB色空間のRだけをXYZ色空間に変換することを考えます。RをXYZ色空間に変換したそれぞれの値を$X_r$、$Y_r$、$Z_r$とすると、上記(\ref{eq:X_xyY})、(\ref{eq:Z_xyY})の式により
+
+\[ ( X_r, Y_r, Z_r ) = (Y_r \frac{x_r}{y_r}, Y_r, Y_r \frac{z_r}{y_r}) \]
+
+同様にGとBについては、
+
+\[ ( X_g, Y_g, Z_g ) = (Y_g \frac{x_g}{y_g}, Y_g, Y_g \frac{z_g}{y_g}) \]
+
+\[ ( X_b, Y_b, Z_b ) = (Y_b \frac{x_b}{y_b}, Y_b, Y_b \frac{z_b}{y_b}) \]
+
+これらの値を足すと白色になるので$X_w$、$Y_w$、$Z_w$として表すと、
+
+\[
+\begin{cases}
+
+Y_r \frac{x_r}{y_r} + Y_g \frac{x_g}{y_g} + Y_b \frac{x_b}{y_b} = Y_w \frac{x_w}{y_w} \\
+
+Y_r + Y_g + Y_b = Y_w \\
+
+Y_r \frac{z_r}{y_r} + Y_g \frac{z_g}{y_g} + Y_b \frac{z_b}{y_b} = Y_w \frac{z_w}{y_w} \\
+
+\end{cases}
+\]
+
+ここで$Y_w$はそれぞれの要素が最大の輝度の時の値でかつ$Y_w = 1$でしたので、
+
+\[
+\begin{cases}
+
+Y_r \frac{x_r}{y_r} + Y_g \frac{x_g}{y_g} + Y_b \frac{x_b}{y_b} = \frac{x_w}{y_w} \\
+
+Y_r + Y_g + Y_b = 1 \\
+
+Y_r \frac{z_r}{y_r} + Y_g \frac{z_g}{y_g} + Y_b \frac{z_b}{y_b} = \frac{z_w}{y_w} \\
+
+\end{cases}
+\]
+
+\section{sRGBでの計算}
+
+さてsRGBの話をします。sRGBではxyY表色系におけるRed、 Green、 Blue、 White Pointを表す色の四点が決まっています。
+
+\begin{center}
+\begin{tabular}{|l|r|r|r|r|} \hline
+色度 & Red & Green & Blue & White Point \\ \hline
+x & 0.6400 & 0.3000 & 0.1500 & 0.3127 \\ \hline
+y & 0.3300 & 0.6000 & 0.0600 & 0.3290 \\ \hline
+\end{tabular}
+\end{center}
+
+この値を代入すれば$Y_r, Y_g, Y_b$を三元一次連立方程式で解けることがわかります。
+
+\begin{center}
+\begin{tabular}{|l|r|r|r|r|} \hline
+色度 & Red & Green & Blue & White Point \\ \hline
+x & 0.6400 & 0.3000 & 0.1500 & 0.3127 \\ \hline
+y & 0.3300 & 0.6000 & 0.0600 & 0.3290 \\ \hline
+Y & 0.2126 & 0.7152 & 0.0722 & 1.0000 \\ \hline
+\end{tabular}
+\end{center}
+
+あとは(\ref{eq:X_xyY})、(\ref{eq:Z_xyY})の式を用いて計算していきます。
+
+\[
+X_r = \frac{x_rY_r}{y_r} = \frac{0.6400 * 0.2126}{0.3300} = 0.4124
+\]
+
+\[
+X_g = \frac{x_gY_g}{y_g} = \frac{0.3000 * 0.7152}{0.6000} = 0.3576
+\]
+
+\[
+X_b = \frac{x_bY_b}{y_b} = \frac{0.1500 * 0.0722}{0.3290} = 0.1805
+\]
+
+\[
+Z_r = \frac{z_r Y_r}{y_r} = \frac{0.0300 * 0.2126}{0.3300} = 0.0193
+\]
+
+\[
+Z_g = \frac{z_g Y_g}{y_g} = \frac{0.1000 * 0.7152}{0.6000} = 0.1192
+\]
+
+\[
+Z_b = \frac{z_b Y_b}{y_b} = \frac{0.7900 * 0.0722}{0.0600} = 0.9506
+\]
+
+まとめると、
+
+\[
+\begin{cases}
+X_r + Y_r + Z_r = 0.4124 + 0.3576 + 0.1805 = 0.9505 = X_w \\
+
+X_g + Y_g + Z_g = 0.2126 + 0.7152 + 0.0722 = 1.0000 = Y_w \\
+
+X_b + Y_b + Z_b = 0.0193 + 0.1192 + 0.9506 = 1.0891 = Z_w \\
+\end{cases}
+\]
+
+くどいようですが、これらの値は最大輝度の時でした。R,G,Bは0以上1以下の値ですので、結局のところこれらにR,G,Bの割合の値を代入していけば任意の値にも適用でき、RGBからXYZの変換式になります。任意の値 $(r,g,b)$ について、
+
+\[
+\begin{cases}
+0.4124 * r + 0.3576 * g + 0.1805 * b = X \\
+
+0.2126 * r + 0.7152 * g + 0.0722 * b = Y \\
+
+0.0193 * r + 0.1192 * g + 0.9506 * b = Z \\
+
+(0 \leqq r,g,b \leqq 1)
+\end{cases}
+\]
+
+すなわち(\ref{eq:RGBtoXYZ})です。
+
+また、逆行列を求めればXYZからRGBの変換式が得られます。すなわち(\ref{eq:XYZtoRGB})です。
+
+さて、本当にR,G,Bの割合の値を代入していけば任意の値にも適用できるのでしょうか？　実はそうでもない場合もあります。
+
+カラープロファイルに定義されていれば直線的ではなく、ガンマ補正のような曲線を与えてそれに沿って変換することが許されています。ここでは省略しますが、どちらにしろ基本となるRGBとXYZの変換式は変わりません。増え方が直線的では無く曲線的になるだけです。
+
+\section{応用１　赤と緑が入れ替わった色空間}
+
+RGBとWの四原色が与えられればXYZへの変換マトリックスを求めることができることがわかりました。XYZ色空間はすべての色空間の基本となる色空間ですから、この手法を得たことはとても素晴らしいことです。
+
+では例えば、正常なモニタで作成された画像を赤と緑が入れ替わってしまったモニタで閲覧するにはどうすれば良いでしょうか？当然そのまま表示すれば赤と緑が逆に表示されてしまいます。しかし、この場合もXYZ色空間が役に立ちます。すなわち、$RGB \leftrightarrow XYZ \leftrightarrow GRB$と変換すれば良いのです。ここではカラープロファイルはsRGBであるとして考えてみましょう。（赤と緑が入れ替わった環境では正確にはsRGBをまねて原色位置を変えたプロファイルということになります）
+
+ここまでやってきたように、sRGBプロファイルにおけるRGBとXYZの相互変換式はすでに計算しました。では同じようにGRBのケースを計算してみましょう。
+
+\begin{center}
+\begin{tabular}{|l|r|r|r|r|} \hline
+色度 & Red（sRGBではGreen） & Green（sRGBではRed） & Blue & White Point \\ \hline
+x & 0.3000 & 0.6400 & 0.1500 & 0.3127 \\ \hline
+y & 0.6000 & 0.3300 & 0.0600 & 0.3290 \\ \hline
+\end{tabular}
+\end{center}
+
+\[
+\begin{bmatrix}
+X \\
+Y \\
+Z \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+0.3576 & 0.4124 & 0.1805 \\
+0.7152 & 0.2126 & 0.0722 \\
+0.1192 & 0.0193 & 0.9505
+\end{bmatrix}
+\begin{bmatrix}
+R_{grb} \\
+G_{grb} \\
+B_{grb} \\
+\end{bmatrix}
+\]
+
+\[
+\begin{bmatrix}
+R_{grb} \\
+G_{grb} \\
+B_{grb} \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+-0.9692 & 1.8760 & 0.0416 \\
+3.2410 & -1.5374 & -0.4986 \\
+0.0556 & -0.2040 & 1.0570
+\end{bmatrix}
+\begin{bmatrix}
+X \\
+Y \\
+Z \\
+\end{bmatrix}
+\]
+
+逆行列計算時の丸め誤差が出てしまいましたが、おおむね$RGB \leftrightarrow XYZ$の時と比べてひっくり返った値になりましたね。後は順次これらを変換すれば相互の環境で意図した同じ色で見ることができるのです。
+
+計算していきましょう。
+
+\[
+(R,G,B) = (0.25, 0.5, 0.75)
+\]
+が与えられているものとします。これをXYZ色空間に変換すると、
+\[
+(X,Y,Z) = (0.4173, 0.4649, 0.7773)
+\]
+となります。さらにGRBに変換すると、
+\[
+(R_{grb},G_{grb},B_{grb}) = (0.5, 0.25, 0.75)
+\]
+となり、$R,G$と$R_{grb},G_{grb}$が入れ替わっていることが計算によって求められました。
+
+このように、どのような環境で色を表示しても整合性がとれるのでXYZ色空間の意義はとてもすばらしいです。
+
+\section{応用２　AdobeRGB色空間}
+
+応用１はどちらかというと机上の空論で、仕組みを理解するには有用ですが現実的には役に立たないものでした。では別の色空間で、かつ、デファクトスタンダードであるAdobeRGB(1998)への応用を考えて、sRGBとの相互変換を行うことにより役に立っていることを見せてみましょう。
+
+応用１の時と同様に$sRGB \leftrightarrow XYZ \leftrightarrow AdobeRGB$と変換していくことになります。
+
+AdobeRGBの各種パラメータもあらかじめ定義されています。
+
+\begin{center}
+\begin{tabular}{|l|r|r|r|r|} \hline
+色度 & Red & Green & Blue & White Point \\ \hline
+x & 0.6400 & 0.2100 & 0.1500 & 0.3127 \\ \hline
+y & 0.3300 & 0.7100 & 0.0600 & 0.3290 \\ \hline
+\end{tabular}
+\end{center}
+
+つまり、Green方向にちょっとだけ広い色域を持っています。AdobeRGB色空間のRGBをそれぞれ$R_a, G_a, B_a$として計算していきます。
+
+\[
+Y_r = 0.2973
+\]
+
+\[
+Y_g = 0.6274
+\]
+
+\[
+Y_b = 0.0753
+\]
+
+\[
+X_r = \frac{x_rY_r}{y_r} = \frac{0.6400 * 0.2973}{0.3300} = 0.5766
+\]
+
+\[
+X_g = \frac{x_gY_g}{y_g} = \frac{0.2100 * 0.6274}{0.7100} = 0.1856
+\]
+
+\[
+X_b = \frac{x_bY_b}{y_b} = \frac{0.1500 * 0.0753}{0.0600} = 0.1883
+\]
+
+\[
+Z_r = \frac{z_r Y_r}{y_r} = \frac{0.0300 * 0.2973}{0.3300} = 0.0270
+\]
+
+\[
+Z_g = \frac{z_g Y_g}{y_g} = \frac{0.0800 * 0.6274}{0.7100} = 0.0707
+\]
+
+\[
+Z_b = \frac{z_b Y_b}{y_b} = \frac{0.7900 * 0.0753}{0.0600} = 0.9915
+\]
+
+まとめると、
+
+\[
+\begin{bmatrix}
+X \\
+Y \\
+Z \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+0.5766 & 0.1856 & 0.1883 \\
+0.2973 & 0.6274 & 0.0753 \\
+0.0270 & 0.0707 & 0.9915
+\end{bmatrix}
+\begin{bmatrix}
+R_{a} \\
+G_{a} \\
+B_{a} \\
+\end{bmatrix}
+\]
+
+また逆行列を求めると、
+
+\[
+\begin{bmatrix}
+R_{a} \\
+G_{a} \\
+B_{a} \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+2.0419 & -0.5650 & -0.3447 \\
+-0.9692 & 1.8760 & 0.0416 \\
+0.0134 & -0.1183 & 1.0151
+\end{bmatrix}
+\begin{bmatrix}
+X \\
+Y \\
+Z \\
+\end{bmatrix}
+\]
+
+無事に求めることができました。あとはsRGBから順にAdobeRGBにしていきましょう。応用１の時と同じく、
+
+\[
+(R,G,B) = (0.25, 0.5, 0.75)
+\]
+が与えられているものとします。これをXYZ色空間に変換すると、
+\[
+(X,Y,Z) = (0.4173, 0.4649, 0.7773)
+\]
+となります。ここまでは一緒ですね。さらにAdobeRGBに変換すると、
+\[
+(R_{a},G_{a},B_{a}) = (0.3212, 0.5, 0.7773)
+\]
+となりました。$R_{a}$が少し増え$B_{a}$が少し減る結果となりました。
+
+\section{応用３　AdobeRGB色空間とBradford変換}
+
+AdobeRGBのカラープロファイルである、.iccファイルを見てみると、上記で得られたマトリックスでは無いことに気がつきます。引用してみます。
+
+\begin{equation}
+\begin{bmatrix}
+X \\
+Y \\
+Z \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+0.6097 & 0.2053 & 0.1492 \\
+0.3111 & 0.6257 & 0.0632 \\
+0.0195 & 0.0609 & 0.7446
+\end{bmatrix}
+\begin{bmatrix}
+R \\
+G \\
+B \\
+\end{bmatrix}
+\label{eq:AdobeRGB_icc}
+\end{equation}
+
+という具合で全く違っています。この違いはどこから来るのでしょうか？実は前者は$D65$環境下で計算されたものであるのに対して、このカラープロファイルのものはBradford変換という手法を用いて$D65$環境下から$D50$環境下に変換したものです。この変換はXYZ色空間で行われます。
+
+Bradford変換は、以下のようなものです。
+
+\[
+\begin{bmatrix}
+X_{dest} \\
+Y_{dest} \\
+Z_{dest}
+\end{bmatrix}
+=
+M
+\begin{bmatrix}
+X_{src} \\
+Y_{src} \\
+Z_{src}
+\end{bmatrix}
+\]
+
+詳しくは述べませんが、$D65$から$D50$に変換するマトリックスは以下のように与えられています。
+
+\[
+M =
+\begin{bmatrix}
+ 1.0478 & 0.0229 & -0.0501 \\
+ 0.0295 & 0.9905 & -0.0170 \\
+-0.0092 & 0.0150 & 0.7521
+\end{bmatrix}
+\]
+
+つまり間にもう一ステップが入るということになります。
+
+ところで、AdobeRGB(D65) $\rightarrow$ XYZ $\rightarrow$ Bradfordという手順を踏まなくても、Bradford変換をしたD65の三原色とD50の白色の座標を用いて計算すれば AdobeRGB(D65) $\rightarrow$ XYZ(D50)の計算ができることに気がつきます。
+
+\begin{center}
+\begin{tabular}{|l|r|r|r|r|} \hline
+色度 & Red(変換後) & Green(変換後) & Blue(変換後) & White Point(D50) \\ \hline
+x & 0.6484 & 0.2302 & 0.1559 & 0.3457 \\ \hline
+y & 0.3309 & 0.7016 & 0.0661 & 0.3585 \\ \hline
+z & 0.0207 & 0.0682 & 0.7780 & 0.2958 \\ \hline
+\end{tabular}
+\end{center}
+
+これらにより(\ref{eq:AdobeRGB_icc})を得られることがわかります。
+
+また、逆行列を計算すると、
+
+\begin{equation}
+\begin{bmatrix}
+R \\
+G \\
+B \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+1.9624 & -0.6107 & -0.3414 \\
+-0.9792 & 1.9167 & 0.0334 \\
+0.0286 & -0.1405 & 1.3488
+\end{bmatrix}
+\begin{bmatrix}
+X \\
+Y \\
+Z \\
+\end{bmatrix}
+\label{eq:AdobeRGBinv_icc}
+\end{equation}
+
+という逆変換の式が得られます。
+
+Bradford変換はAdobeRGB以外の色空間でももちろん有効です。但し、変換マトリックス$M$が変わることに注意してください。
+
+AdobeRGB色空間は24bitカラーの画像形式では表現しきれないとしばしば言われます。念のため各要素が16bitである48bit以上の形式で保存するようにするとよりよいと思います。
+
+\end{document}

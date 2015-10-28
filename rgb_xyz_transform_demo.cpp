@@ -34,10 +34,23 @@ void InvertMatrix(matrix<double>&mat, matrix<double>&matinv)
 int CalcXYZMatrix(double red_x, double red_y, double green_x, double green_y, double blue_x, double blue_y, double white_x, double white_y, matrix<double> &mat3x3)
 {
 	//マトリックスを求めます
-	//rRx/Ry + gGx/Gy + bBx/By = Wx/Wy
-	//r      + g      + b      = 1
-	//rRz/Ry + gGz/Gy + bBz/By = Wz/Wy
-	//の連立方程式からr,g,bを求めます
+	//rMax * Rx/Ry + gMax * Gx/Gy + bMax * Bx/By = Wx/Wy
+	//rMax         + gMax         + bMax         = 1
+	//rMax * Rz/Ry + gMax * Gz/Gy + bMax * Bz/By = Wz/Wy
+	//の連立方程式からrMax,gMax,bMaxを求めます(rMax,gMax,bMaxはRGBの最大値の意味)
+
+	//XYZの定義より rMax + gMax + bMax = Y が成り立ちます
+	//各r,g,bのX,Z成分については
+	//rX = rMax * Rx / Ry    gX = gMax * Gx / Gy    bX = bMax * Bx / By
+	//rZ = rMax * Rz / Ry    gZ = gMax * Gz / Gy    bZ = bMax * Bz / By
+	//が成り立ちますので
+	//rX + gX + bX = X    rZ + gZ + bZ = Z
+	//を整理して
+	//rMax * Rx/Ry + gMax * Gx/Gy + bMax * Bx/By = X
+	//rMax         + gMax         + bMax         = Y
+	//rMax * Rz/Ry + gMax * Gz/Gy + bMax * Bz/By = Z
+	//を計算すれば変換マトリックスが得られます
+
 	matrix<double> in_mat(3,4);
 
 	in_mat(0,0) = red_x / red_y;
@@ -69,6 +82,7 @@ int CalcXYZMatrix(double red_x, double red_y, double green_x, double green_y, do
 			}
 		}
 	}
+	//in_mat(?,3)に答えが入っている
 
 	matrix<double> out_mat(3,3);
 	out_mat(0,0) = in_mat(0,3) * red_x / red_y;
@@ -149,6 +163,8 @@ int main(int argc, char **argv)
 	matrix<double> matSRGBinv;
 	matrix<double> matAdobeRGB;
 	matrix<double> matAdobeRGBinv;
+	matrix<double> matAdobeRGB50;
+	matrix<double> matAdobeRGB50inv;
 	matrix<double> matCustom;
 	matrix<double> matCustominv;
 
@@ -204,6 +220,27 @@ int main(int argc, char **argv)
 	cout << "White(0.3127, 0.3290)" << endl;
 	dump(matAdobeRGB, matAdobeRGBinv);
 
+	//AdobeRGB(D50)
+	red_x = 0.6484;
+	red_y = 0.3309;
+	green_x = 0.2302;
+	green_y = 0.7016;
+	blue_x = 0.1559;
+	blue_y = 0.0661;
+	white_x = 0.3457;
+	white_y = 0.3585;
+
+	CalcXYZMatrix(red_x, red_y, green_x, green_y, blue_x, blue_y, white_x, white_y, matAdobeRGB50);
+	InvertMatrix(matAdobeRGB50, matAdobeRGB50inv);
+
+	cout << "-----=====-----" << endl;
+	cout << "AdobeRGB(D50)" << endl;
+	cout << "Red(0.6484, 0.3309)" << endl;
+	cout << "Green(0.2302, 0.7016)" << endl;
+	cout << "Blue(0.1559, 0.0661)" << endl;
+	cout << "White(0.3457, 0.3585)" << endl;
+	dump(matAdobeRGB50, matAdobeRGB50inv);
+
 	//sRGBの色相を入れ替えたもの(R<->G)
 	red_x = 0.30;
 	red_y = 0.60;
@@ -241,12 +278,20 @@ int main(int argc, char **argv)
 	transform_test(R, G, B, matSRGB, matAdobeRGBinv);
 	cout << "-----=====-----" << endl;
 
+	R = 0.25;
+	G = 0.5;
+	B = 0.75;
+	cout << "-----=====-----" << endl;
+	cout << "sRGB -> AdobeRGB : (R,G,B) = (0.25,0.5,0.75)" << endl;
+	transform_test(R, G, B, matSRGB, matAdobeRGBinv);
+	cout << "-----=====-----" << endl;
+
 	//変換テスト(2) sRGB -> 入れ替えたもの
 	R = 0.25;
 	G = 0.5;
 	B = 0.75;
 	cout << "-----=====-----" << endl;
-	cout << "sRGB -> RGchange : (R,G,B) = (0.25,0,5,0.75)" << endl;
+	cout << "sRGB -> RGchange : (R,G,B) = (0.25,0.5,0.75)" << endl;
 	transform_test(R, G, B, matSRGB, matCustominv);
 	cout << "-----=====-----" << endl;
 
